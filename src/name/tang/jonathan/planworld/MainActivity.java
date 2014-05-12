@@ -1,5 +1,7 @@
 package name.tang.jonathan.planworld;
 
+import java.util.List;
+
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
@@ -18,7 +20,7 @@ public class MainActivity extends ActionBarActivity {
 			+ "for (var i = 0, link; link = links[i++];) {"
 				+ "names.push(link.innerText);"
 			+ "}"
-			+ "alert(names);";
+			+ "plandroid.recordPlanWatch(names.join(','));";
 	
 	private ListView planWatch;
 	
@@ -31,7 +33,6 @@ public class MainActivity extends ActionBarActivity {
 		planWorldWeb.getSettings().setJavaScriptEnabled(true);
 		planWorldWeb.addJavascriptInterface(new JSPlanDroid(), "plandroid");
 		planWorldWeb.loadUrl("https://neon.note.amherst.edu/planworld");
-		planWorldWeb.loadUrl("javascript:plandroid.execute()");
 		
 		planWatch = (ListView) findViewById(R.id.planwatch);
 		planWatch.setAdapter(new ArrayAdapter<String>(
@@ -65,11 +66,21 @@ public class MainActivity extends ActionBarActivity {
 		public boolean shouldOverrideUrlLoading(WebView view, String url) {
 			return false;
 		}
+		
+		@Override
+		public void onPageFinished(WebView view, String url) {
+			if (url.indexOf("planworld") != -1) {
+				view.loadUrl(PLANWATCH_EXTRACTION_JS);
+			}
+		}
 	}
 	
 	private class JSPlanDroid implements Runnable {
+		private String[] usernames;
+		
 		@JavascriptInterface
-		public void execute() {
+		public void recordPlanWatch(String usernames) {
+			this.usernames = usernames.split(",");
 			planWatch.post(this);
 		}
 		
@@ -77,7 +88,7 @@ public class MainActivity extends ActionBarActivity {
 		public void run() {
 			planWatch.setAdapter(new ArrayAdapter(
 					MainActivity.this, android.R.layout.simple_list_item_1,
-					new String[] { "JS Invoked!" }));
+					usernames));
 		}
 	}
 }
