@@ -23,6 +23,7 @@ public class MainActivity extends ActionBarActivity {
 			+ "plandroid.recordPlanWatch(names.join(','));";
 	
 	private ListView planWatch;
+	private PlandroidDatabase dbHelper;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +40,8 @@ public class MainActivity extends ActionBarActivity {
 				this, android.R.layout.simple_list_item_1, new String[] {
 						"person1", "person2", "person3", "person4", "person5"
 				}));
+		
+		dbHelper = new PlandroidDatabase(this);
 	}
 
 	@Override
