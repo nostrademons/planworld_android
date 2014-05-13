@@ -1,7 +1,7 @@
 package name.tang.jonathan.planworld;
 
+import android.app.DialogFragment;
 import android.os.Bundle;
-import android.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +13,7 @@ import android.webkit.WebViewClient;
  * A simple {@link android.support.v4.app.Fragment} subclass.
  * 
  */
-public class PlanScraperFragment extends Fragment {
+public class PlanScraperFragment extends DialogFragment {
 
 	private static final String PLANWATCH_EXTRACTION_JS = "javascript:"
 			+ "var names = [];" 

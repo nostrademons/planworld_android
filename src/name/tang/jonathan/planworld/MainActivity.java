@@ -25,8 +25,7 @@ public class MainActivity extends ActionBarActivity
 						"person1", "person2", "person3", "person4", "person5"
 				}));
 		
-		scraper = (PlanScraperFragment)
-				getFragmentManager().findFragmentById(R.id.scraper);
+		scraper = new PlanScraperFragment();
 		scraper.setListener(this);
 		
 		dbHelper = new PlandroidDatabase(this);
