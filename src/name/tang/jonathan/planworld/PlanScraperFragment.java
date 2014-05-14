@@ -1,6 +1,7 @@
 package name.tang.jonathan.planworld;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,18 +17,20 @@ import android.webkit.WebViewFragment;
 public class PlanScraperFragment extends WebViewFragment {
 
 	private static final String PLANWATCH_EXTRACTION_JS = "javascript:"
-			+ "var records = [];" 
+			+ "var planwatch = [], snoop = [];" 
 			+ "var links = document.querySelectorAll('a.planwatch');"
 			+ "for (var i = 0, link; link = links[i++];) {"
+				+ "var records = (link.previousElementSibling.previousElementSibling.innerText == 'Snoop' || snoop.length) ? snoop : planwatch;"
 				+ "var name = link.innerText;"
 				+ "var hasUpdate = link.previousElementSibling.classList.contains('new') ? '1' : '0';"
 				+ "var updateTime = link.nextSibling.textContent;"
 				+ "records.push([name, hasUpdate, updateTime].join(';'));"
 			+ "}"
-			+ "plandroid.recordPlanWatch(records.join(','));";
+			+ "plandroid.recordPlanwatch(planwatch.join(','), snoop.join(','));";
 	
 	private ScrapeCompletedListener listener;
 	private PlanwatchData[] planwatch;
+	private PlanwatchData[] snoop;
 	
 	public PlanScraperFragment() {
 		planwatch = new PlanwatchData[0];
@@ -44,6 +47,10 @@ public class PlanScraperFragment extends WebViewFragment {
 	
 	public PlanwatchData[] getPlanwatch() {
 		return planwatch;
+	}
+	
+	public PlanwatchData[] getSnoop() {
+		return snoop;
 	}
 	
 	public String[] getUsernames() {
@@ -93,13 +100,24 @@ public class PlanScraperFragment extends WebViewFragment {
 	
 	private class JSPlanDroid implements Runnable {
 		@JavascriptInterface
-		public void recordPlanWatch(String jsData) {
-			String[] records = jsData.split(",");
-			PlanScraperFragment.this.planwatch = new PlanwatchData[records.length];
-			for (int i = 0; i < records.length; ++i) {
-				PlanScraperFragment.this.planwatch[i] = new PlanwatchData(records[i]);
-			}
+		public void recordPlanwatch(String planwatchData, String snoopData) {
+			PlanScraperFragment.this.planwatch = constructPlanwatchData(planwatchData);
+			PlanScraperFragment.this.snoop = constructPlanwatchData(snoopData);
 			getWebView().post(this);
+		}
+		
+		private PlanwatchData[] constructPlanwatchData(String jsData) {
+			Log.d("PlanScraperFragment", "Parsing " + jsData);
+			if ("".equals(jsData)) {
+				return new PlanwatchData[0];
+			}
+			
+			String[] records = jsData.split(",");
+			PlanwatchData[] retval = new PlanwatchData[records.length];
+			for (int i = 0; i < records.length; ++i) {
+				retval[i] = new PlanwatchData(records[i]);
+			}
+			return retval;
 		}
 		
 		// Executes in UI thread, called back via planWatch.post();

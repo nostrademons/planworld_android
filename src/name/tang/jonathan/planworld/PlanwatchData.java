@@ -5,6 +5,8 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import android.util.Log;
+
 /**
  * Data helper to capture information scraped off the planwatch.
  * 
@@ -29,6 +31,14 @@ public class PlanwatchData {
 	
 	public PlanwatchData(String jsData) {
 		String[] pieces = jsData.split(";");
+		if (pieces.length != 3) {
+			Log.e("PlanwatchData", "Missing fields when parsing " + jsData);
+			this.username = jsData;
+			this.hasUpdate = false;
+			this.updateTimestamp = 0;
+			this.hasExactTime = false;
+			return;
+		}
 		this.username = pieces[0];
 		this.hasUpdate = "1".equals(pieces[1]);
 		
