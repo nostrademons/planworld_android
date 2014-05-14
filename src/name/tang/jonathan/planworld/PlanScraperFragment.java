@@ -1,6 +1,5 @@
 package name.tang.jonathan.planworld;
 
-import android.app.DialogFragment;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,12 +7,13 @@ import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebViewFragment;
 
 /**
  * A simple {@link android.support.v4.app.Fragment} subclass.
  * 
  */
-public class PlanScraperFragment extends DialogFragment {
+public class PlanScraperFragment extends WebViewFragment {
 
 	private static final String PLANWATCH_EXTRACTION_JS = "javascript:"
 			+ "var names = [];" 
@@ -23,7 +23,6 @@ public class PlanScraperFragment extends DialogFragment {
 			+ "}"
 			+ "plandroid.recordPlanWatch(names.join(','));";
 	
-	private WebView browser;
 	private ScrapeCompletedListener listener;
 	private String[] usernames;
 	
@@ -47,23 +46,21 @@ public class PlanScraperFragment extends DialogFragment {
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
-		// Inflate the layout for this fragment
-		View view = inflater.inflate(R.layout.fragment_plan_scraper, container,
-				false);
-		
-		browser = (WebView) view.findViewById(R.id.webview);
+		WebView browser = (WebView) super.onCreateView(
+				inflater, container, savedInstanceState);
+		browser.setVisibility(View.GONE);
 		browser.setWebViewClient(new PlanScraperClient());
 		browser.getSettings().setJavaScriptEnabled(true);
 		browser.addJavascriptInterface(new JSPlanDroid(), "plandroid");
 		browser.loadUrl("https://neon.note.amherst.edu/planworld");
-		return view;
+		return browser;
 	}
 
 	public static interface ScrapeCompletedListener {
 		public void onScrapeCompleted();
 	}
 	
-	private static class PlanScraperClient extends WebViewClient {
+	private class PlanScraperClient extends WebViewClient {
 		@Override
 		public boolean shouldOverrideUrlLoading(WebView view, String url) {
 			return false;
@@ -71,7 +68,13 @@ public class PlanScraperFragment extends DialogFragment {
 		
 		@Override
 		public void onPageFinished(WebView view, String url) {
+			if (url.indexOf("shibidp.amherst.edu") != -1) {
+				getWebView().setVisibility(View.VISIBLE);
+				return;
+			}
+
 			if (url.indexOf("planworld") != -1) {
+				getWebView().setVisibility(View.GONE);
 				view.loadUrl(PLANWATCH_EXTRACTION_JS);
 			}
 		}
@@ -81,7 +84,7 @@ public class PlanScraperFragment extends DialogFragment {
 		@JavascriptInterface
 		public void recordPlanWatch(String usernames) {
 			PlanScraperFragment.this.usernames = usernames.split(",");
-			browser.post(this);
+			getWebView().post(this);
 		}
 		
 		// Executes in UI thread, called back via planWatch.post();
