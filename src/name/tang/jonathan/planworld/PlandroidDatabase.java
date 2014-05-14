@@ -2,8 +2,8 @@ package name.tang.jonathan.planworld;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.AsyncTask;
 
 public class PlandroidDatabase extends SQLiteOpenHelper {
 
@@ -26,5 +26,11 @@ public class PlandroidDatabase extends SQLiteOpenHelper {
 	@Override
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 		// Nothing yet
+	}
+	
+	public class UpdatePlanwatch extends AsyncTask<PlanwatchData, Integer, Void> {
+		protected Void doInBackground(PlanwatchData... data) {
+			return null;
+		}
 	}
 }

@@ -16,18 +16,21 @@ import android.webkit.WebViewFragment;
 public class PlanScraperFragment extends WebViewFragment {
 
 	private static final String PLANWATCH_EXTRACTION_JS = "javascript:"
-			+ "var names = [];" 
+			+ "var records = [];" 
 			+ "var links = document.querySelectorAll('a.planwatch');"
 			+ "for (var i = 0, link; link = links[i++];) {"
-				+ "names.push(link.innerText);"
+				+ "var name = link.innerText;"
+				+ "var hasUpdate = link.previousElementSibling.classList.contains('new') ? '1' : '0';"
+				+ "var updateTime = link.nextSibling.textContent;"
+				+ "records.push([name, hasUpdate, updateTime].join(';'));"
 			+ "}"
-			+ "plandroid.recordPlanWatch(names.join(','));";
+			+ "plandroid.recordPlanWatch(records.join(','));";
 	
 	private ScrapeCompletedListener listener;
-	private String[] usernames;
+	private PlanwatchData[] planwatch;
 	
 	public PlanScraperFragment() {
-		usernames = new String[0];
+		planwatch = new PlanwatchData[0];
 		listener = new ScrapeCompletedListener() {
 			@Override public void onScrapeCompleted() {
 				// Null object
@@ -39,8 +42,16 @@ public class PlanScraperFragment extends WebViewFragment {
 		this.listener = listener;
 	}
 	
+	public PlanwatchData[] getPlanwatch() {
+		return planwatch;
+	}
+	
 	public String[] getUsernames() {
-		return this.usernames;
+		String[] usernames = new String[planwatch.length];
+		for (int i = 0; i < usernames.length; ++i) {
+			usernames[i] = getPlanwatch()[i].username;
+		}
+		return usernames; 
 	}
 	
 	@Override
@@ -82,8 +93,12 @@ public class PlanScraperFragment extends WebViewFragment {
 	
 	private class JSPlanDroid implements Runnable {
 		@JavascriptInterface
-		public void recordPlanWatch(String usernames) {
-			PlanScraperFragment.this.usernames = usernames.split(",");
+		public void recordPlanWatch(String jsData) {
+			String[] records = jsData.split(",");
+			PlanScraperFragment.this.planwatch = new PlanwatchData[records.length];
+			for (int i = 0; i < records.length; ++i) {
+				PlanScraperFragment.this.planwatch[i] = new PlanwatchData(records[i]);
+			}
 			getWebView().post(this);
 		}
 		
