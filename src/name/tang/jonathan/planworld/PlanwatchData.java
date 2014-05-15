@@ -26,7 +26,7 @@ public class PlanwatchData {
 	
 	public final String username;
 	public final boolean hasUpdate;
-	public final long updateTimestamp;
+	public final long lastUpdate;
 	public final boolean hasExactTime;
 	
 	public PlanwatchData(String jsData) {
@@ -35,7 +35,7 @@ public class PlanwatchData {
 			Log.e("PlanwatchData", "Missing fields when parsing " + jsData);
 			this.username = jsData;
 			this.hasUpdate = false;
-			this.updateTimestamp = 0;
+			this.lastUpdate = 0;
 			this.hasExactTime = false;
 			return;
 		}
@@ -43,7 +43,7 @@ public class PlanwatchData {
 		this.hasUpdate = "1".equals(pieces[1]);
 		
 		if (" (Never)".equals(pieces[2])) {
-			this.updateTimestamp = 0;
+			this.lastUpdate = 0;
 			this.hasExactTime = false;
 			return;
 		}
@@ -60,7 +60,7 @@ public class PlanwatchData {
 			// time as a fallback.
 			hasExactTime = false;
 		}
-		this.updateTimestamp = lastUpdate.getMillis() / 1000;
+		this.lastUpdate = lastUpdate.getMillis() / 1000;
 		this.hasExactTime = hasExactTime;
 	}
 }

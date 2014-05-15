@@ -107,7 +107,6 @@ public class PlanScraperFragment extends WebViewFragment {
 		}
 		
 		private PlanwatchData[] constructPlanwatchData(String jsData) {
-			Log.d("PlanScraperFragment", "Parsing " + jsData);
 			if ("".equals(jsData)) {
 				return new PlanwatchData[0];
 			}

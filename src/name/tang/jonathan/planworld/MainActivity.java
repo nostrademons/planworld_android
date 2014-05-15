@@ -54,9 +54,10 @@ public class MainActivity extends ActionBarActivity
 		}
 		return super.onOptionsItemSelected(item);
 	}
-	
+
 	@Override
 	public void onScrapeCompleted() {
+		dbHelper.new UpdatePlanwatch().execute(scraper.getPlanwatch());
 		planWatch.setAdapter(new ArrayAdapter(
 				MainActivity.this, android.R.layout.simple_list_item_1,
 				scraper.getUsernames()));
