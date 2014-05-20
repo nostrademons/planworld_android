@@ -28,6 +28,16 @@ public class PlanScraperFragment extends WebViewFragment {
 			+ "}"
 			+ "plandroid.recordPlanwatch(planwatch.join(','), snoop.join(','));";
 	
+	private static final String TEXT_EXTRACTION_JS = "javascript:"
+			+ "var header = document.querySelector('td.content tt:nth-of-type(2)');"
+			+ "plandroid.recordContent("
+				+ "document.querySelector('td.content strong').innerText, "
+				+ "header.nextElementSibling.outerHTML,"
+				+ "header.innerText.substring("
+					+ "header.innerText.indexOf('Last updated: ') +"
+					+ "'Last updated: '.length, "
+					+ "header.innerText.indexOf(' (archives)')))";
+	
 	private ScrapeCompletedListener listener;
 	private PlanwatchData[] planwatch;
 	private PlanwatchData[] snoop;
@@ -104,6 +114,11 @@ public class PlanScraperFragment extends WebViewFragment {
 			PlanScraperFragment.this.planwatch = constructPlanwatchData(planwatchData);
 			PlanScraperFragment.this.snoop = constructPlanwatchData(snoopData);
 			getWebView().post(this);
+		}
+		
+		@JavascriptInterface
+		public void recordContent(String username, String text, String date) {
+			Log.d("JSPlanDroid", "Retrieved plan for " + username + " on " + date + ": " + date);
 		}
 		
 		private PlanwatchData[] constructPlanwatchData(String jsData) {
