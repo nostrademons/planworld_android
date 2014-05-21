@@ -2,6 +2,7 @@ package name.tang.jonathan.planworld;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.AsyncTask;
@@ -42,8 +43,22 @@ public class PlandroidDatabase extends SQLiteOpenHelper {
 				long newRowId = db.insertWithOnConflict(
 						"planwatch", null, row, SQLiteDatabase.CONFLICT_REPLACE);
 			}
+			db.close();
 			Log.d("DB", "Wrote " + data.length + " records");
 			return null;
+		}
+	}
+	
+	public class GetPlanwatchSize extends AsyncTask<Void, Void, Integer> {
+		protected Integer doInBackground(Void... unused) {
+			Log.d("DB", "Querying number of planwatch rows");
+			SQLiteDatabase db = getReadableDatabase();
+			Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM planwatch", new String[0]);
+			cursor.moveToFirst();
+			int count = cursor.getInt(0);
+			cursor.close();
+			db.close();
+			return count;
 		}
 	}
 }

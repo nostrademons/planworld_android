@@ -1,5 +1,7 @@
 package name.tang.jonathan.planworld;
 
+import java.util.concurrent.ExecutionException;
+
 import android.app.AlarmManager;
 import android.app.IntentService;
 import android.app.PendingIntent;
@@ -53,7 +55,12 @@ public class WebScraperService extends IntentService {
 	}
 	
 	private boolean planwatchIsEmpty() {
-		return true;
+		try {
+			return dbHelper.new GetPlanwatchSize().get() == 0;
+		} catch (InterruptedException | ExecutionException e) {
+			Log.e("WebScraperService.planwatchIsEmpty", e.getMessage());
+			return false;
+		}
 	}
 
 	private WebView createHiddenWebview() {
