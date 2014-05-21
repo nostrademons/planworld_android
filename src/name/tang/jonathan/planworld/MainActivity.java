@@ -1,5 +1,8 @@
 package name.tang.jonathan.planworld;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
@@ -30,6 +33,12 @@ public class MainActivity extends ActionBarActivity
 		scraper.setListener(this);
 
 		dbHelper = new PlandroidDatabase(this);
+		
+		Intent refreshData = new Intent(this, WebScraperService.class);
+		refreshData.setAction(WebScraperService.ACTION_REFRESH);
+		AlarmManager alarm = (AlarmManager) getSystemService(ALARM_SERVICE);
+		alarm.setInexactRepeating(AlarmManager.ELAPSED_REALTIME, 0, 15 * 1000,
+				PendingIntent.getService(this, 0, refreshData, 0));
 	}
 
 	@Override
