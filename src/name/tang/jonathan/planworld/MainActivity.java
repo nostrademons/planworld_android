@@ -32,7 +32,7 @@ public class MainActivity extends ActionBarActivity {
 		Intent refreshData = new Intent(this, WebScraperService.class);
 		refreshData.setAction(WebScraperService.ACTION_REFRESH);
 		AlarmManager alarm = (AlarmManager) getSystemService(ALARM_SERVICE);
-		alarm.setInexactRepeating(AlarmManager.ELAPSED_REALTIME, 0, 15 * 1000,
+		alarm.setInexactRepeating(AlarmManager.ELAPSED_REALTIME, 0, 30 * 60 * 1000,
 				PendingIntent.getService(this, 0, refreshData, 0));
 	}
 

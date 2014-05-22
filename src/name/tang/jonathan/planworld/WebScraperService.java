@@ -53,7 +53,7 @@ public class WebScraperService extends Service {
 			Log.w("WebScraperService", "Login window is visible; ignoring intent");
 			return START_STICKY;
 		}
-		new UpdatePlanwatch().execute();
+		new UpdatePlan("jdtang05").execute();
 		return START_STICKY;
 	}
 	
@@ -226,9 +226,13 @@ public class WebScraperService extends Service {
 		public UpdatePlan(String username) {
 			super("https://neon.note.amherst.edu/planworld/?id=" + username,
 				  "var header = document.querySelector('td.content tt:nth-of-type(2)');"
-				+ "plandroid.recordData(JSON.serialize({"
+				+ "var content = header.parentNode.cloneNode(true);"
+				+ "var node;"
+				+ "while ((node = content.firstChild) && (node.nodeType != 1 || node.innerText.indexOf('Login name:') != 0)) content.removeChild(node);"
+				+ "content.removeChild(node);"
+				+ "plandroid.recordData(JSON.stringify({"
 					+ "username: document.querySelector('td.content strong').innerText, "
-					+ "content: header.nextElementSibling.outerHTML,"
+					+ "content: content.innerHTML,"
 					+ "updated: header.innerText.substring("
 						+ "header.innerText.indexOf('Last updated: ') +"
 						+ "'Last updated: '.length, "
@@ -247,7 +251,7 @@ public class WebScraperService extends Service {
 		protected void handleData(String json) {
 			Gson gson = new Gson();
 			WebData webdata = gson.fromJson(json, WebData.class);
-			Log.d("WebScraperService", "Scraped " + webdata.username + ": " + webdata.content);
+			Log.d("WebScraperService", "Scraped " + webdata.username + " (" + webdata.updated + "): " + webdata.content);
 		}
 	}
 
