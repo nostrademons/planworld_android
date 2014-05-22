@@ -97,7 +97,7 @@ public class PlanScraperFragment extends WebViewFragment {
 		@Override
 		public void onPageFinished(WebView view, String url) {
 			if (url.indexOf("shibidp.amherst.edu") != -1) {
-				getWebView().setVisibility(View.VISIBLE);
+//				getWebView().setVisibility(View.VISIBLE);
 				return;
 			}
 
