@@ -4,6 +4,8 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 
+import com.google.gson.Gson;
+
 import android.app.IntentService;
 import android.app.Service;
 import android.content.Intent;
@@ -163,14 +165,17 @@ public class WebScraperService extends Service {
 		}
 		
 		@JavascriptInterface
-		public void recordData(String... params) {
+		public void recordData(String data) {
 			Log.d("WebScraperService", "Received browser callback");
-			handleData(params);
+			handleData(data);
 			browser.post(new Runnable() {
 				public void run() {
 					handleUIPostProcessing();
 				}
 			});
+		}
+		
+		protected void cleanup() {
 			pendingFetches.remove();
 			
 			// If we've enqueued any further fetches in handleData, start the next one.
@@ -180,7 +185,7 @@ public class WebScraperService extends Service {
 			}
 		}
 
-		protected void handleData(String[] params) {}
+		protected void handleData(String data) {}
 
 		protected void handleUIPostProcessing() {}
 	}
@@ -192,32 +197,57 @@ public class WebScraperService extends Service {
 				+ "var links = document.querySelectorAll('a.planwatch');"
 				+ "for (var i = 0, link; link = links[i++];) {"
 					+ "var records = (link.previousElementSibling.previousElementSibling.innerText == 'Snoop' || snoop.length) ? snoop : planwatch;"
-					+ "var name = link.innerText;"
-					+ "var hasUpdate = link.previousElementSibling.classList.contains('new') ? '1' : '0';"
-					+ "var updateTime = link.nextSibling.textContent;"
-					+ "records.push([name, hasUpdate, updateTime].join(';'));"
+					+ "records.push({"
+						+ "name: link.innerText,"
+						+ "hasUpdate: link.previousElementSibling.classList.contains('new'),"
+						+ "updateTime: link.nextSibling.textContent"
+					+ "});"
 				+ "}"
-				+ "plandroid.recordData(planwatch.join(','), snoop.join(','));");
+				+ "plandroid.recordData(JSON.stringify({ "
+					+ "planwatch: planwatch,"
+					+ "snoop: snoop"
+				+ "}));");
+		}
+		
+		private class WebData {
+			public PlanwatchData[] planwatch;
+			public PlanwatchData[] snoop;
 		}
 		
 		@Override
-		protected void handleData(String[] params) {
-			PlanwatchData[] planwatch = constructPlanwatchData(params[0]);
-			PlanwatchData[] snoop = constructPlanwatchData(params[1]);
-			Log.d("WebScraperService", "Scraped " + planwatch.length + " users on planWatch");
+		protected void handleData(String json) {
+			Gson gson = new Gson();
+			WebData webdata = gson.fromJson(json, WebData.class);
+			Log.d("WebScraperService", "Scraped " + webdata.planwatch.length + " users on planWatch");
+		}
+	}
+	
+	private class UpdatePlan extends WebFetch {
+		public UpdatePlan(String username) {
+			super("https://neon.note.amherst.edu/planworld/?id=" + username,
+				  "var header = document.querySelector('td.content tt:nth-of-type(2)');"
+				+ "plandroid.recordData(JSON.serialize({"
+					+ "username: document.querySelector('td.content strong').innerText, "
+					+ "content: header.nextElementSibling.outerHTML,"
+					+ "updated: header.innerText.substring("
+						+ "header.innerText.indexOf('Last updated: ') +"
+						+ "'Last updated: '.length, "
+						+ "header.innerText.indexOf(' (archives)'))"
+				+ "}));");
 		}
 		
-		protected PlanwatchData[] constructPlanwatchData(String jsData) {
-			if ("".equals(jsData)) {
-				return new PlanwatchData[0];
-			}
-			
-			String[] records = jsData.split(",");
-			PlanwatchData[] retval = new PlanwatchData[records.length];
-			for (int i = 0; i < records.length; ++i) {
-				retval[i] = new PlanwatchData(records[i]);
-			}
-			return retval;
+		private class WebData {
+			public String username;
+			public String content;
+			public String updated;
+		}
+
+		
+		@Override
+		protected void handleData(String json) {
+			Gson gson = new Gson();
+			WebData webdata = gson.fromJson(json, WebData.class);
+			Log.d("WebScraperService", "Scraped " + webdata.username + ": " + webdata.content);
 		}
 	}
 

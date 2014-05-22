@@ -11,11 +11,9 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-public class MainActivity extends ActionBarActivity
-		implements PlanScraperFragment.ScrapeCompletedListener {
+public class MainActivity extends ActionBarActivity {
 
 	private ListView planWatch;
-	private PlanScraperFragment scraper;
 	private PlandroidDatabase dbHelper;
 
 	@Override
@@ -28,9 +26,6 @@ public class MainActivity extends ActionBarActivity
 				this, android.R.layout.simple_list_item_1, new String[] {
 						"person1", "person2", "person3", "person4", "person5"
 				}));
-		
-		scraper = (PlanScraperFragment) getFragmentManager().findFragmentById(R.id.scraper);
-		scraper.setListener(this);
 
 		dbHelper = new PlandroidDatabase(this);
 		
@@ -58,17 +53,8 @@ public class MainActivity extends ActionBarActivity
 			return true;
 		}
 		if (id == R.id.action_login) {
-			scraper.getWebView().setVisibility(View.VISIBLE);;
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
-	}
-
-	@Override
-	public void onScrapeCompleted() {
-		dbHelper.new UpdatePlanwatch().execute(scraper.getPlanwatch());
-		planWatch.setAdapter(new ArrayAdapter(
-				MainActivity.this, android.R.layout.simple_list_item_1,
-				scraper.getUsernames()));
 	}
 }
