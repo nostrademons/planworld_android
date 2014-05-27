@@ -53,7 +53,7 @@ public class WebScraperService extends Service {
 			Log.w("WebScraperService", "Login window is visible; ignoring intent");
 			return START_STICKY;
 		}
-		new UpdatePlan("jdtang05").execute();
+		new UpdatePlanwatch().execute();
 		return START_STICKY;
 	}
 	
@@ -61,15 +61,6 @@ public class WebScraperService extends Service {
 	public void onDestroy() {
 		super.onDestroy();
 		((WindowManager) getSystemService(WINDOW_SERVICE)).removeView(browser);
-	}
-	
-	private boolean planwatchIsEmpty() {
-		try {
-			return dbHelper.new GetPlanwatchSize().get() == 0;
-		} catch (InterruptedException | ExecutionException e) {
-			Log.e("WebScraperService.planwatchIsEmpty", e.getMessage());
-			return false;
-		}
 	}
 
 	private WebView createHiddenWebview() {
@@ -125,18 +116,18 @@ public class WebScraperService extends Service {
 				return;
 			}
 			hideWebView();
+			
+			// If a login happened, the page may redirect to the PlanWorld home screen
+			// rather than the desired user's plan; send it back.
+			if (!browser.getUrl().equals(currentFetch.url)) {
+				browser.loadUrl(currentFetch.url);
+			}
 			currentFetch.onPageFinished();
 		}
 	}
 
 	private interface Command {
 		void execute();
-	}
-	
-	private class FetchFullPlanwatch implements Command {
-		public void execute() {
-			Log.d("WebScraperService", "Fetching full planwatch.");
-		}
 	}
 	
 	private abstract class WebFetch implements Command, Runnable {
@@ -192,13 +183,13 @@ public class WebScraperService extends Service {
 	
 	private class UpdatePlanwatch extends WebFetch {
 		public UpdatePlanwatch() {
-			super("https://neon.note.amherst.edu/planworld",
+			super("https://neon.note.amherst.edu/planworld/",
 				  "var planwatch = [], snoop = [];" 
 				+ "var links = document.querySelectorAll('a.planwatch');"
 				+ "for (var i = 0, link; link = links[i++];) {"
 					+ "var records = (link.previousElementSibling.previousElementSibling.innerText == 'Snoop' || snoop.length) ? snoop : planwatch;"
 					+ "records.push({"
-						+ "name: link.innerText,"
+						+ "username: link.innerText,"
 						+ "hasUpdate: link.previousElementSibling.classList.contains('new'),"
 						+ "updateTime: link.nextSibling.textContent"
 					+ "});"
@@ -218,7 +209,8 @@ public class WebScraperService extends Service {
 		protected void handleData(String json) {
 			Gson gson = new Gson();
 			WebData webdata = gson.fromJson(json, WebData.class);
-			Log.d("WebScraperService", "Scraped " + webdata.planwatch.length + " users on planWatch");
+			Log.d("WebScraperService", "Scraped " + json + " from planWatch");
+			dbHelper.new UpdatePlanwatch(webdata.planwatch, webdata.snoop).execute();
 		}
 	}
 	
@@ -240,22 +232,16 @@ public class WebScraperService extends Service {
 				+ "}));");
 		}
 		
-		private class WebData {
-			public String username;
-			public String content;
-			public String updated;
-		}
-
-		
 		@Override
 		protected void handleData(String json) {
 			Gson gson = new Gson();
-			WebData webdata = gson.fromJson(json, WebData.class);
+			EntryData webdata = gson.fromJson(json, EntryData.class);
 			Log.d("WebScraperService", "Scraped " + webdata.username + " (" + webdata.updated + "): " + webdata.content);
+			dbHelper.new UpdatePlan().execute(webdata);
 		}
 	}
 
-	@Override
+	@ Override
 	public IBinder onBind(Intent intent) {
 		// TODO Auto-generated method stub
 		return null;
