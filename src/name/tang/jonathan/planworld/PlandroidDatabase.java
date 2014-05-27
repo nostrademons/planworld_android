@@ -50,7 +50,6 @@ public class PlandroidDatabase extends SQLiteOpenHelper {
 		}
 		
 		private void updateRow(PlanwatchData entry, boolean updatePlanwatch, boolean updateSnoop) {
-			Log.d("DB", "Recording " + (updatePlanwatch ? "planwatch" : "snoop") + " for " + entry.username);
 			ContentValues row = rows.get(entry.username);
 			if (null == row) {
 				row = new ContentValues();

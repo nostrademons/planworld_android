@@ -41,8 +41,10 @@ public class WebScraperService extends Service {
 		pendingFetches = new ArrayDeque<>();
 		dbHelper = new PlandroidDatabase(this);
 		
+		WebScraperClient webviewClient = new WebScraperClient();
         browser = createHiddenWebview();
-		browser.setWebViewClient(new WebScraperClient());
+		browser.setWebViewClient(webviewClient);
+		browser.addJavascriptInterface(webviewClient, "plandroid");
 		browser.getSettings().setJavaScriptEnabled(true);
 	}
 
@@ -53,7 +55,7 @@ public class WebScraperService extends Service {
 			Log.w("WebScraperService", "Login window is visible; ignoring intent");
 			return START_STICKY;
 		}
-		new UpdatePlanwatch().execute();
+		new Refresh().execute();
 		return START_STICKY;
 	}
 	
@@ -124,6 +126,20 @@ public class WebScraperService extends Service {
 			}
 			currentFetch.onPageFinished();
 		}
+		
+		@JavascriptInterface
+		public void recordData(String data) {
+			final WebFetch currentFetch = pendingFetches.peek();
+
+			Log.d("WebScraperService", "Received browser callback");
+			currentFetch.handleData(data);
+			browser.post(new Runnable() {
+				public void run() {
+					currentFetch.handleUIPostProcessing();
+					currentFetch.cleanup();
+				}
+			});
+		}
 	}
 
 	private interface Command {
@@ -147,23 +163,11 @@ public class WebScraperService extends Service {
 		
 		public void run() {
 			Log.d("WebScraperService", "Loading url " + url);
-			browser.addJavascriptInterface(this, "plandroid");
 			browser.loadUrl(url);
 		}
 		
 		public void onPageFinished() {
 			browser.loadUrl("javascript:" + js);
-		}
-		
-		@JavascriptInterface
-		public void recordData(String data) {
-			Log.d("WebScraperService", "Received browser callback");
-			handleData(data);
-			browser.post(new Runnable() {
-				public void run() {
-					handleUIPostProcessing();
-				}
-			});
 		}
 		
 		protected void cleanup() {
@@ -176,11 +180,14 @@ public class WebScraperService extends Service {
 			}
 		}
 
-		protected void handleData(String data) {}
+		public void handleData(String data) {}
 
-		protected void handleUIPostProcessing() {}
+		public void handleUIPostProcessing() {}
 	}
 	
+	/**
+	 * Scrapes and parses the planwatch, then inputs it into the SQLite3 database.
+	 */
 	private class UpdatePlanwatch extends WebFetch {
 		public UpdatePlanwatch() {
 			super("https://neon.note.amherst.edu/planworld/",
@@ -200,20 +207,27 @@ public class WebScraperService extends Service {
 				+ "}));");
 		}
 		
-		private class WebData {
+		protected class WebData {
 			public PlanwatchData[] planwatch;
 			public PlanwatchData[] snoop;
 		}
 		
 		@Override
-		protected void handleData(String json) {
+		public void handleData(String json) {
 			Gson gson = new Gson();
 			WebData webdata = gson.fromJson(json, WebData.class);
-			Log.d("WebScraperService", "Scraped " + json + " from planWatch");
 			dbHelper.new UpdatePlanwatch(webdata.planwatch, webdata.snoop).execute();
+			enqueueAdditionalFetches(webdata);
+		}
+		
+		protected void enqueueAdditionalFetches(WebData webdata) {
+			// Overridden in Refresh subclass to schedule additional plan fetches.
 		}
 	}
 	
+	/**
+	 * Scrapes and parses a single user's plan, and updates the SQLite3 DB with it.
+	 */
 	private class UpdatePlan extends WebFetch {
 		public UpdatePlan(String username) {
 			super("https://neon.note.amherst.edu/planworld/?id=" + username,
@@ -223,7 +237,7 @@ public class WebScraperService extends Service {
 				+ "while ((node = content.firstChild) && (node.nodeType != 1 || node.innerText.indexOf('Login name:') != 0)) content.removeChild(node);"
 				+ "content.removeChild(node);"
 				+ "plandroid.recordData(JSON.stringify({"
-					+ "username: document.querySelector('td.content strong').innerText, "
+					+ "username: '" + username + "', "
 					+ "content: content.innerHTML,"
 					+ "updated: header.innerText.substring("
 						+ "header.innerText.indexOf('Last updated: ') +"
@@ -233,11 +247,39 @@ public class WebScraperService extends Service {
 		}
 		
 		@Override
-		protected void handleData(String json) {
+		public void handleData(String json) {
 			Gson gson = new Gson();
 			EntryData webdata = gson.fromJson(json, EntryData.class);
 			Log.d("WebScraperService", "Scraped " + webdata.username + " (" + webdata.updated + "): " + webdata.content);
 			dbHelper.new UpdatePlan().execute(webdata);
+		}
+	}
+	
+	/**
+	 * Scrapes the whole planwatch and any plans that need updating.
+	 * 
+	 * This is kept in a distinct subclass of UpdatePlanwatch so that the functionality
+	 * for scraping planwatch and plans can be tested independently, without having to
+	 * do a huge fetch all at once.  The code would probably be clearer without this
+	 * inheritance mess, though.
+	 */
+	public class Refresh extends UpdatePlanwatch {
+		@Override
+		protected void enqueueAdditionalFetches(WebData webdata) {
+			for (PlanwatchData entry : webdata.planwatch) {
+				maybeEnqueuePlanFetch(entry);
+			}
+			for (PlanwatchData entry : webdata.snoop) {
+				maybeEnqueuePlanFetch(entry);
+			}
+		}
+		
+		private void maybeEnqueuePlanFetch(PlanwatchData entry) {
+			Log.d("WebScraperService", "Checking if " + entry.username + " is updated");
+			if (entry.hasUpdate) {
+				pendingFetches.add(new UpdatePlan(entry.username));
+				Log.d("WebScraperService", "Enqueueing fetch for " + entry.username);
+			}
 		}
 	}
 
