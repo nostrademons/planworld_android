@@ -10,8 +10,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    
-    
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -31,6 +30,13 @@
             android:name="name.tang.jonathan.planworld.WebScraperService"
             android:exported="false" >
         </service>
+
+        <provider
+            android:name="name.tang.jonathan.planworld.PlanContentProvider"
+            android:authorities="name.tang.jonathan.planworld.provider"
+            android:enabled="true"
+            android:exported="true" >
+        </provider>
     </application>
 
 </manifest>
