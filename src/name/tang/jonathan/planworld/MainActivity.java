@@ -1,18 +1,25 @@
 package name.tang.jonathan.planworld;
 
 import android.app.AlarmManager;
+import android.app.LoaderManager.LoaderCallbacks;
 import android.app.PendingIntent;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity implements LoaderCallbacks<Cursor> {
 
+	private static final int PLANWATCH_LOADER = 0;
+	
 	private ListView planWatch;
 	private PlandroidDatabase dbHelper;
 
@@ -28,6 +35,8 @@ public class MainActivity extends ActionBarActivity {
 				}));
 
 		dbHelper = new PlandroidDatabase(this);
+		
+		getLoaderManager().initLoader(PLANWATCH_LOADER, null, this);
 		
 		Intent refreshData = new Intent(this, WebScraperService.class);
 		refreshData.setAction(WebScraperService.ACTION_REFRESH);
@@ -56,5 +65,26 @@ public class MainActivity extends ActionBarActivity {
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+		return new CursorLoader(this,
+				Uri.parse("content://name.tang.jonathan.planworld.provider/planwatch"),
+				new String[] { "rowid _id", "username", "last_update", "is_read" },
+				null, null, "last_update DESC");
+	}
+
+	@Override
+	public void onLoadFinished(Loader<Cursor> arg0, Cursor cursor) {
+		planWatch.setAdapter(new SimpleCursorAdapter(
+				this, android.R.layout.simple_list_item_1, cursor,
+				new String[] { "username" }, new int[] { android.R.id.text1 }, 0));
+	}
+
+	@Override
+	public void onLoaderReset(Loader<Cursor> arg0) {
+		SimpleCursorAdapter adapter = (SimpleCursorAdapter) planWatch.getAdapter();
+		adapter.changeCursor(null);
 	}
 }

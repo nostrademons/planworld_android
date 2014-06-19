@@ -100,7 +100,7 @@ public class PlandroidDatabase extends SQLiteOpenHelper {
 		protected Integer doInBackground(Void... unused) {
 			Log.d("DB", "Querying number of planwatch rows");
 			SQLiteDatabase db = getReadableDatabase();
-			Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM planwatch", new String[0]);
+			Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM users", new String[0]);
 			cursor.moveToFirst();
 			int count = cursor.getInt(0);
 			cursor.close();

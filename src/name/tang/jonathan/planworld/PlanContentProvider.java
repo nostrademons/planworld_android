@@ -38,7 +38,7 @@ public class PlanContentProvider extends ContentProvider {
 			selectionArgs[selectionArgs.length - 1] = row;
 		}
 		return dbHelper.getReadableDatabase().query(
-				"planwatch", projection, selection, selectionArgs, null, null, sortOrder);
+				"users", projection, selection, selectionArgs, null, null, sortOrder);
 	}
 
 	@Override
